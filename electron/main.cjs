@@ -4,8 +4,10 @@ const path = require('node:path');
 const { websiteUrl } = require('./config.cjs');
 const { isOfficialUrl, isExternalUrl, isDownloadUrl, webPreferences, allowPermission } = require('./policy.cjs');
 const { showClientUpdateStatus } = require('./updates.cjs');
+const { collectorDeepLink, collectorFromArguments } = require('./deep-link.cjs');
 
 let mainWindow;
+let pendingImport = collectorFromArguments(process.argv);
 app.setName('ListPilot AI');
 app.setAppUserModelId('app.listpilot.desktop');
 const hasLock = app.requestSingleInstanceLock();
@@ -41,10 +43,10 @@ function attachNavigationPolicy(contents) {
   });
 }
 
-async function loadWebsite() {
+async function loadWebsite(destination = websiteUrl) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  if (!isOfficialUrl(websiteUrl)) throw new Error('Official website configuration invalid');
-  try { await mainWindow.loadURL(websiteUrl); }
+  if (!isOfficialUrl(destination)) throw new Error('Official website configuration invalid');
+  try { await mainWindow.loadURL(destination); }
   catch { /* did-fail-load presents a retry choice without exposing raw errors. */ }
 }
 
@@ -114,14 +116,27 @@ function createWindow() {
       { role: 'resetZoom', label: '实际大小' }, { role: 'togglefullscreen', label: '全屏' },
     ] },
   ]));
-  void loadWebsite();
+  void loadWebsite(pendingImport || websiteUrl);
+  pendingImport = null;
 }
 
 if (!hasLock) app.quit();
 else {
   app.enableSandbox();
-  app.on('second-instance', () => {
-    if (!mainWindow) return;
+  // NSIS registers the packaged executable; development registration is explicit.
+  if (app.isPackaged) app.setAsDefaultProtocolClient('listpilot');
+  else if (process.defaultApp && process.argv[1]) app.setAsDefaultProtocolClient('listpilot', process.execPath, [path.resolve(process.argv[1])]);
+  const receiveImport = (destination) => {
+    if (!destination) return;
+    if (!mainWindow || mainWindow.isDestroyed()) { pendingImport = destination; return; }
+    void loadWebsite(destination);
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show(); mainWindow.focus();
+  };
+  app.on('open-url', (event, value) => { event.preventDefault(); receiveImport(collectorDeepLink(value)); });
+  app.on('second-instance', (_event, args) => {
+    receiveImport(collectorFromArguments(args));
+    if (!mainWindow || mainWindow.isDestroyed()) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.show(); mainWindow.focus();
   });

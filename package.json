@@ -1,7 +1,7 @@
 {
   "name": "listpilot-desktop",
   "productName": "ListPilot AI",
-  "version": "2.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "ListPilot AI official Windows desktop client",
   "author": "ListPilot",
@@ -22,6 +22,7 @@
     "appId": "app.listpilot.desktop",
     "productName": "ListPilot AI",
     "asar": true,
+    "protocols": [{ "name": "ListPilot 一键采集", "schemes": ["listpilot"] }],
     "directories": { "output": "release", "buildResources": "build" },
     "files": ["electron/**/*", "build/icon.png", "package.json", "!**/*.test.*", "!**/.env*"],
     "win": {

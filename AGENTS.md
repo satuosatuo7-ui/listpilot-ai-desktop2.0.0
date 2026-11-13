@@ -3,3 +3,4 @@
 - Allow only the exact configured official HTTPS origin in window/frame navigation; route safe external links to the system browser and expose no preload/IPC bridge. Why: remote pages must not gain local execution capability.
 - Use a persistent isolated Electron session without copying cookies or browser profiles. Why: keep account/password login across restarts while retaining server-side authorization.
 - Build NSIS x64 installers on Windows GitHub Actions; keep website reloads distinct from future signed executable updates. Why: website deployment does not replace desktop binaries.
+- Accept only bounded listpilot://collector-import fragments on cold start or single-instance activation, map to the fixed official import page, and retain website validation with no local IPC bridge. Why: desktop handoff must not permit arbitrary navigation or command execution.
